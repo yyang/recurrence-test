@@ -2,6 +2,7 @@
   "name": "rfc2445-recurrance-test",
   "private": true,
   "dependencies": {
-    "rrecur": "*"
+    "rrule": "*",
+    "moment-timezone": "*"
   }
 }

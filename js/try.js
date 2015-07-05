@@ -1,48 +1,49 @@
 
 'use strict';
 
-var Rrecur = require('rrecur').Rrecur;
+var RRule = require('rrule').RRule;
+var moment = require('moment-timezone');
 
-// var rfcString = "DTSTART=20140616T103000Z;FREQ=DAILY;BYHOUR=10;BYMINUTE=30;BYSECOND=0";
-
-// var rrule = Rrecur.parse(rfcString);
-
-// rrule.dtstart = {utc: new Date(), locale: "GMT-0400 (EDT)"};
-
-// console.log(rrule);
-
-// var rrecur = Rrecur.create(rrule, new Date());
-
-// var nextDate = rrecur.next();
-
-// console.log(nextDate());
-// 
-var rrecur;
-
-var rule = {
-  freq: 'daily',
-  // until: Rrecur.toAdjustedISOString(new Date(2014, 6, 22, 10, 30, 0), "GMT-0400 (EDT)"),
-  count: 10,
-  byhour: [10],
-  byminute: [30],
-  bysecond: [0],
-  byday: ['mo', 'we', 'fr'] // Or [Rrecur.weekdays[1], Rrecur.weekdays[3], Rrecur.weekdays[5]]
-// `bysecond` will default to 00, since that's what's specified in `dtstart`
-};
-
-console.log(Rrecur.stringify(rule));
-
+var timezone = 'America/Los_Angeles';
 var rfcString = "DTSTART=20150616T103000Z;FREQ=DAILY;BYHOUR=10;BYMINUTE=30;BYSECOND=0;UNTIL=20150712T153000Z";
 
-rrecur = Rrecur.create({
-  dtstart: {
-    //zoneless: Rrecur.toLocaleISOString(new Date(2014, 6, 21, 10, 30, 0), "GMT-0400 (EDT)")
-    utc: new Date(new Date().getTime()),
-    locale: "+0800"
-  },
-  rrule: Rrecur.parse(rfcString)
-}, new Date());
+/**
+ * Calculate next recurrance 
+ * @param  {Date}   fromDate    Date reference to calculate next recurrence.
+ * @param  {String} rruleString Recurrence rule
+ * @param  {String} tzid        Timezone names, using tz database.
+ * @param  {Bool}   dateObj     returns Date Object if true.
+ * @return {Number|Date}        Target date timestamp or object.
+ */
+// Time zones: http://www.iana.org/time-zones
+function nextRecurrence(fromDate, rruleString, tzid, dateObj) {
+  /**
+   * Calculate offset date with target timezone offset
+   * @param  {Date}   localDate             Local Date, with desired date, hour, 
+   *                                        minute, etc.
+   * @param  {Number} targetTimezoneOffset  Timezone offset from UTC
+   * @return {Date}                  A new timestamp in target timezone with same
+   *                                 date composition.
+   */
+  function offsetDate(localDateTimestamp, targetTimezoneOffset) {
+    var localOffset = new Date().getTimezoneOffset();
+    return localDateTimestamp - (localOffset - targetTimezoneOffset) * 60 * 1000;
+  }
 
-//console.log(rrecur);
+  var rrule    = RRule.fromString(rruleString);
+  var timezone = moment.tz.zone(tzid);
 
-console.log(rrecur.next()); // 2014-05-21T10:30:00.000-0400
+
+  var localDate    = rrule.after(fromDate).getTime();
+  var targetOffset = timezone.offset(localDate);
+  var targetDate   = offsetDate(localDate, targetOffset);
+
+  if (targetOffset !== timezone.offset(targetDate)) {
+    targetOffset = timezone.offset(targetDate);
+    targetDate   = offsetDate(localDate, targetOffset);
+  }
+
+  return dateObj ? new Date(targetDate) : targetDate;
+}
+
+console.log('Target Date :', nextRecurrence(new Date(), rfcString, timezone, true));
