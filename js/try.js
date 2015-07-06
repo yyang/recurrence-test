@@ -17,30 +17,27 @@ var rfcString = "DTSTART=20150616T103000Z;FREQ=DAILY;BYHOUR=10;BYMINUTE=30;BYSEC
  */
 // Time zones: http://www.iana.org/time-zones
 function nextRecurrence(fromDate, rruleString, tzid, dateObj) {
-  /**
-   * Calculate offset date with target timezone offset
-   * @param  {Date}   localDate             Local Date, with desired date, hour, 
-   *                                        minute, etc.
-   * @param  {Number} targetTimezoneOffset  Timezone offset from UTC
-   * @return {Date}                  A new timestamp in target timezone with same
-   *                                 date composition.
-   */
-  function offsetDate(localDateTimestamp, targetTimezoneOffset) {
-    var localOffset = new Date().getTimezoneOffset();
-    return localDateTimestamp - (localOffset - targetTimezoneOffset) * 60 * 1000;
-  }
 
-  var rrule    = RRule.fromString(rruleString);
-  var timezone = moment.tz.zone(tzid);
+  var rrule          = RRule.fromString(rruleString);
 
+  // Timezone offset
+  var timezone       = moment.tz.zone(tzid);
+  var localOffset    = new Date().getTimezoneOffset();
+  var targetOffset   = timezone.offset(fromDate);
+  var timezoneOffset = (localOffset - targetOffset) * 60 * 1000;
 
-  var localDate    = rrule.after(fromDate).getTime();
-  var targetOffset = timezone.offset(localDate);
-  var targetDate   = offsetDate(localDate, targetOffset);
+  // Do RRule calculation using server timezone.
+  var adjustedFromDate   = new Date(fromDate.getTime() + timezoneOffset);
+  var adjustedTargetDate = rrule.after(adjustedFromDate).getTime();
 
+  // Switch back to target timezone
+  var targetDate   = new Date(adjustedTargetDate - timezoneOffset);
+
+  // Taking DST switch into consideration
   if (targetOffset !== timezone.offset(targetDate)) {
-    targetOffset = timezone.offset(targetDate);
-    targetDate   = offsetDate(localDate, targetOffset);
+    targetOffset   = timezone.offset(targetDate);
+    timezoneOffset = (localOffset - targetOffset) * 60 * 1000;
+    targetDate     = new Date(adjustedTargetDate - timezoneOffset);
   }
 
   return dateObj ? new Date(targetDate) : targetDate;
