@@ -22,19 +22,21 @@ function nextRecurrence(fromDate, rruleString, tzid, dateObj) {
 
   // Timezone offset
   var timezone       = moment.tz.zone(tzid);
-  var localOffset    = new Date().getTimezoneOffset();
+  var localOffset    = fromDate.getTimezoneOffset();
   var targetOffset   = timezone.offset(fromDate);
   var timezoneOffset = (localOffset - targetOffset) * 60 * 1000;
 
   // Do RRule calculation using server timezone.
   var adjustedFromDate   = new Date(fromDate.getTime() + timezoneOffset);
-  var adjustedTargetDate = rrule.after(adjustedFromDate).getTime();
+  var adjustedTargetDate = rrule.after(adjustedFromDate);
 
   // Switch back to target timezone
-  var targetDate   = new Date(adjustedTargetDate - timezoneOffset);
+  var targetDate   = new Date(adjustedTargetDate.getTime() - timezoneOffset);
 
   // Taking DST switch into consideration
-  if (targetOffset !== timezone.offset(targetDate)) {
+  if (targetOffset !== timezone.offset(targetDate) ||
+      localOffset !== adjustedTargetDate.getTimezoneOffset()) {
+    localOffset    = adjustedTargetDate.getTimezoneOffset();
     targetOffset   = timezone.offset(targetDate);
     timezoneOffset = (localOffset - targetOffset) * 60 * 1000;
     targetDate     = new Date(adjustedTargetDate - timezoneOffset);
