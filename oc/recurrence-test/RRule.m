@@ -167,7 +167,7 @@ static NSUInteger const allowedFreqTypes = 7;
 
 #pragma mark - internal methods
 
-- (NSString *)frequencyFromDateComponents:(NSDateComponents *)dc {
+- (NSString *)freqFromDateComponents:(NSDateComponents *)dc {
     if (dc.year != NSDateComponentUndefined ||
         dc.era != NSDateComponentUndefined) {
         return nil;
