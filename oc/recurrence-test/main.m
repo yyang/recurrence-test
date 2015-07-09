@@ -18,6 +18,7 @@ int main(int argc, const char * argv[]) {
         RRule *rule = [[RRule alloc] initWithRRuleString:rfcString timezone:[NSTimeZone timeZoneWithName:timezone]];
 
         NSLog(@"%@", [rule nextRecurranceFromNow]);
+        NSLog(@"%f", [[rule nextRecurranceFromNow] timeIntervalSince1970] * 1000);
     }
     return 0;
 }

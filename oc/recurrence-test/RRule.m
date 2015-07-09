@@ -8,7 +8,7 @@
 
 #import "RRule.h"
 
-#define ALL_DATE_FLAGS NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond | NSCalendarUnitWeekday | NSCalendarUnitWeekdayOrdinal | NSCalendarUnitWeekOfYear | NSCalendarUnitYearForWeekOfYear
+#define ALL_DATE_FLAGS NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond | NSCalendarUnitNanosecond | NSCalendarUnitWeekday | NSCalendarUnitWeekdayOrdinal | NSCalendarUnitWeekOfYear | NSCalendarUnitYearForWeekOfYear
 
 
 @interface RRule ()
@@ -49,6 +49,9 @@ static NSUInteger const allowedFreqTypes = 7;
         until          = newUntil;
         count          = newCount;
         interval       = newInterval ? newInterval : @1;
+    }
+    if (![frequency isEqualToString:@"SECONDLY"]) {
+        ruleComponents.nanosecond = 0;
     }
     return self;
 }
@@ -273,6 +276,7 @@ static NSUInteger const allowedFreqTypes = 7;
     
     NSArray *rules = [newRRuleString componentsSeparatedByString:@";"];
     ruleComponents = [[NSDateComponents alloc] init];
+    ruleComponents.nanosecond = 0;
     NSString *prevName;
     for (NSString *rule in rules) {
         if ([rule length] == 0) {
@@ -424,6 +428,10 @@ static NSUInteger const allowedFreqTypes = 7;
     
     if (ruleComponents.second != NSDateComponentUndefined) {
         calcComponents.second = ruleComponents.second;
+    }
+    
+    if (ruleComponents.nanosecond != NSDateComponentUndefined) {
+        calcComponents.nanosecond = ruleComponents.nanosecond;
     }
     
     if (ruleComponents.weekday != NSDateComponentUndefined) {
