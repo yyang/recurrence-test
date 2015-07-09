@@ -36,6 +36,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSDate *)nextRecurranceFromDate:(NSDate *)date notEqual:(BOOL)neq;
 - (NSDate *)nextRecurranceFromDate:(NSDate *)date;
 - (NSDate *)nextRecurranceFromNow;
+- (NSNumber *)remainingRecurrence;
 
 - (NSDictionary *)description;
 

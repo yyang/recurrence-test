@@ -165,6 +165,56 @@ static NSUInteger const allowedFreqTypes = 7;
              @"tzid":  self.timeZone.name};
 }
 
+- (NSNumber *)remainingRecurrence {
+    if (count == nil || [count unsignedIntegerValue] == 0) {
+        return @-1;
+    }
+
+    NSDateComponents *intervalComponents = [self intervalComponents];
+    NSCalendar *workingCal = [self workingCalendar];
+    NSDate *referenceDate = dateStart.copy;
+    NSDate *calcDate;
+    NSDateComponents *dc;
+    NSUInteger currentCount = 0, maxCount = [count unsignedIntegerValue];
+    
+    dc = [workingCal components:ALL_DATE_FLAGS fromDate:referenceDate];
+    dc = [self matchesComponentsWithRuleComponents:dc];
+    
+    calcDate = [workingCal dateFromComponents:dc];
+    if (calcDate == nil) {
+        return @0;
+    }
+    
+    // Adjustment for starting dates, since count matters for counts;
+    while ([calcDate compare:dateStart] == NSOrderedAscending) {
+        calcDate = [workingCal dateByAddingComponents:intervalComponents toDate:calcDate options:0];
+        if (calcDate == nil) {
+            return @0;
+        }
+        
+    }
+    
+    while (![self isCalcDateValid:calcDate withReferece:referenceDate notEqual:true]) {
+        currentCount += 1;
+        if (currentCount >= maxCount) {
+            return @0;
+        }
+        
+        if (until) {
+            if ([calcDate compare:until] == NSOrderedDescending) {
+                return @0;
+            }
+        }
+        
+        calcDate = [workingCal dateByAddingComponents:intervalComponents toDate:calcDate options:0];
+        if (calcDate == nil) {
+            return @0;
+        }
+    }
+    
+    return @(maxCount - currentCount);
+}
+
 #pragma mark - internal methods
 
 - (NSString *)freqFromDateComponents:(NSDateComponents *)dc {
