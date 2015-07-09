@@ -29,7 +29,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property NSNumber *interval;
 @property (readonly) NSString *rruleString;
 
-- (instancetype)initWithDateComponents:(NSDateComponents *)dateComponents frequency:(nonnull NSString *)frequency dateStart:(nullable NSDate *)dateStart count:(nullable NSNumber *)count interval:(nullable NSNumber *)interval until:(nullable NSDate *)until timeZone:(nullable NSTimeZone *)timezone;
+- (instancetype)initWithDateComponents:(NSDateComponents *)dateComponents frequency:(nullable NSString *)frequency dateStart:(nullable NSDate *)dateStart count:(nullable NSNumber *)count interval:(nullable NSNumber *)interval until:(nullable NSDate *)until timeZone:(nullable NSTimeZone *)timezone;
 - (instancetype)initWithRRuleString:(NSString *)rruleString timezone:(nullable NSTimeZone *)timezone;
 - (instancetype)initWithDescription:(NSDictionary *)description;
 

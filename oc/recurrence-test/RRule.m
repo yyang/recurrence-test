@@ -13,9 +13,13 @@
 
 @interface RRule ()
 
+- (NSString *)freqFromDateComponents:(NSDateComponents *)dc;
 - (void)parseRRuleString:(NSString *)newRRuleString;
 - (NSDate *)dateFromISO8601String:(NSString *)dateString;
-@property (readonly) NSDateComponents *intervalComponents;
+- (BOOL)isCalcDateValid:(NSDate *)calcDate withReferece:(NSDate *)referenceDate notEqual:(BOOL)neq;
+- (NSDateComponents *)matchesComponentsWithRuleComponents:(NSDateComponents *)calcComponents ;
+- (NSDateComponents *)intervalComponents;
+- (NSCalendar *)workingCalendar;
 
 @end
 
@@ -36,11 +40,11 @@ static NSUInteger const allowedFreqTypes = 7;
 @synthesize interval;
 @synthesize wkst;
 
-- (instancetype)initWithDateComponents:(nonnull NSDateComponents *)newDateComponents frequency:(nonnull NSString *)newFrequency dateStart:(nullable NSDate *)newDateStart count:(nullable NSNumber *)newCount interval:(nullable NSNumber *)newInterval until:(nullable NSDate *)newUntil timeZone:(nullable NSTimeZone *)newTimeZone {
+- (instancetype)initWithDateComponents:(nonnull NSDateComponents *)newDateComponents frequency:(nullable NSString *)newFrequency dateStart:(nullable NSDate *)newDateStart count:(nullable NSNumber *)newCount interval:(nullable NSNumber *)newInterval until:(nullable NSDate *)newUntil timeZone:(nullable NSTimeZone *)newTimeZone {
     if (self = [super init]) {
         ruleComponents = newDateComponents;
         timeZone       = newTimeZone ? newTimeZone : [NSTimeZone localTimeZone];
-        frequency      = newFrequency;
+        frequency      = newFrequency ? newFrequency : [self freqFromDateComponents:ruleComponents];
         dateStart      = newDateStart;
         until          = newUntil;
         count          = newCount;
@@ -147,94 +151,6 @@ static NSUInteger const allowedFreqTypes = 7;
     return calcDate;
 }
 
-- (BOOL)isCalcDateValid:(NSDate *)calcDate withReferece:(NSDate *)referenceDate notEqual:(BOOL)neq {
-    if (neq) {
-        return [calcDate compare:referenceDate] == NSOrderedDescending;
-    } else {
-        return [calcDate compare:referenceDate] != NSOrderedAscending;
-    }
-}
-
-- (NSDateComponents *)matchesComponentsWithRuleComponents:(NSDateComponents *)calcComponents {
-    if (ruleComponents.year != NSDateComponentUndefined) {
-        calcComponents.year = ruleComponents.year;
-    }
-    
-    if (ruleComponents.month != NSDateComponentUndefined) {
-        calcComponents.month = ruleComponents.month;
-    }
-    
-    if (ruleComponents.day != NSDateComponentUndefined) {
-        calcComponents.day = ruleComponents.day;
-    }
-    
-    if (ruleComponents.hour != NSDateComponentUndefined) {
-        calcComponents.hour = ruleComponents.hour;
-    }
-    
-    if (ruleComponents.minute != NSDateComponentUndefined) {
-        calcComponents.minute = ruleComponents.minute;
-    }
-    
-    if (ruleComponents.second != NSDateComponentUndefined) {
-        calcComponents.second = ruleComponents.second;
-    }
-    
-    if (ruleComponents.weekday != NSDateComponentUndefined) {
-        calcComponents.weekday = ruleComponents.weekday;
-    }
-    
-    if (ruleComponents.weekdayOrdinal != NSDateComponentUndefined) {
-        calcComponents.weekdayOrdinal = ruleComponents.weekdayOrdinal;
-    }
-
-    if (ruleComponents.weekOfYear != NSDateComponentUndefined) {
-        calcComponents.weekOfYear = ruleComponents.weekOfYear;
-    }
-    
-    return calcComponents;
-}
-
-- (NSDateComponents *)intervalComponents {
-    NSDateComponents *intervalComponents = [[NSDateComponents alloc] init];
-    if (interval == nil) {
-        interval = @1;
-    }
-    
-    if([frequency isEqualToString:@"SECONDLY"]){
-        intervalComponents.second = [interval integerValue];
-    }
-    else if([frequency isEqualToString:@"MINUTELY"]){
-        intervalComponents.minute = [interval integerValue];
-    }
-    else if([frequency isEqualToString:@"HOURLY"]){
-        intervalComponents.hour = [interval integerValue];
-    }
-    else if([frequency isEqualToString:@"DAILY"]){
-        intervalComponents.day = [interval integerValue];
-    }
-    else if([frequency isEqualToString:@"WEEKLY"]){
-        intervalComponents.weekOfYear = [interval integerValue];
-    }
-    else if([frequency isEqualToString:@"MONTHLY"]){
-        intervalComponents.month = [interval integerValue];
-    }
-    else if([frequency isEqualToString:@"YEARLY"]){
-        intervalComponents.year = [interval integerValue];
-    }
-    
-    return intervalComponents;
-}
-
-- (NSCalendar *)workingCalendar {
-    NSCalendar *workingCalendar = [NSCalendar currentCalendar];
-    [workingCalendar setTimeZone:timeZone];
-    if (wkst) {
-        [workingCalendar setFirstWeekday:[wkst unsignedIntegerValue]];
-    }
-    return workingCalendar;
-}
-
 - (NSDate *)nextRecurranceFromDate:(nonnull NSDate *)date {
     return [self nextRecurranceFromDate:date notEqual:YES];
 }
@@ -251,6 +167,52 @@ static NSUInteger const allowedFreqTypes = 7;
 
 #pragma mark - internal methods
 
+- (NSString *)frequencyFromDateComponents:(NSDateComponents *)dc {
+    if (dc.year != NSDateComponentUndefined ||
+        dc.era != NSDateComponentUndefined) {
+        return nil;
+    }
+    
+    if (dc.month != NSDateComponentUndefined ||
+        dc.weekOfYear != NSDateComponentUndefined ||
+        [frequency isEqualToString:@"YEARLY"]) {
+        return @"YEARLY";
+    }
+    
+    if (dc.day != NSDateComponentUndefined ||
+        dc.weekdayOrdinal != NSDateComponentUndefined ||
+        dc.weekOfMonth != NSDateComponentUndefined ||
+        [frequency isEqualToString:@"MONTHLY"]) {
+        return @"MONTHLY";
+    }
+    
+    if (dc.weekday != NSDateComponentUndefined ||
+        [frequency isEqualToString:@"WEEKLY"]) {
+        return @"WEEKLY";
+    }
+    
+    if (dc.hour != NSDateComponentUndefined ||
+        [frequency isEqualToString:@"DAILY"]) {
+        return @"DAILY";
+    }
+    
+    if (dc.minute != NSDateComponentUndefined ||
+        [frequency isEqualToString:@"HOURLY"]) {
+        return @"HOURLY";
+    }
+    
+    if (dc.second != NSDateComponentUndefined ||
+        [frequency isEqualToString:@"MINUTELY"]) {
+        return @"MINUTELY";
+    }
+    
+    if (dc.nanosecond != NSDateComponentUndefined ||
+        [frequency isEqualToString:@"SECONDLY"]) {
+        return @"SECONDLY";
+    }
+    
+    return nil;
+}
 
 - (void)parseRRuleString:(NSString *)newRRuleString {
     newRRuleString = [newRRuleString stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
@@ -379,6 +341,94 @@ static NSUInteger const allowedFreqTypes = 7;
     }
     
     return [formatter dateFromString:dateString];
+}
+
+- (BOOL)isCalcDateValid:(NSDate *)calcDate withReferece:(NSDate *)referenceDate notEqual:(BOOL)neq {
+    if (neq) {
+        return [calcDate compare:referenceDate] == NSOrderedDescending;
+    } else {
+        return [calcDate compare:referenceDate] != NSOrderedAscending;
+    }
+}
+
+- (NSDateComponents *)matchesComponentsWithRuleComponents:(NSDateComponents *)calcComponents {
+    if (ruleComponents.year != NSDateComponentUndefined) {
+        calcComponents.year = ruleComponents.year;
+    }
+    
+    if (ruleComponents.month != NSDateComponentUndefined) {
+        calcComponents.month = ruleComponents.month;
+    }
+    
+    if (ruleComponents.day != NSDateComponentUndefined) {
+        calcComponents.day = ruleComponents.day;
+    }
+    
+    if (ruleComponents.hour != NSDateComponentUndefined) {
+        calcComponents.hour = ruleComponents.hour;
+    }
+    
+    if (ruleComponents.minute != NSDateComponentUndefined) {
+        calcComponents.minute = ruleComponents.minute;
+    }
+    
+    if (ruleComponents.second != NSDateComponentUndefined) {
+        calcComponents.second = ruleComponents.second;
+    }
+    
+    if (ruleComponents.weekday != NSDateComponentUndefined) {
+        calcComponents.weekday = ruleComponents.weekday;
+    }
+    
+    if (ruleComponents.weekdayOrdinal != NSDateComponentUndefined) {
+        calcComponents.weekdayOrdinal = ruleComponents.weekdayOrdinal;
+    }
+    
+    if (ruleComponents.weekOfYear != NSDateComponentUndefined) {
+        calcComponents.weekOfYear = ruleComponents.weekOfYear;
+    }
+    
+    return calcComponents;
+}
+
+- (NSDateComponents *)intervalComponents {
+    NSDateComponents *intervalComponents = [[NSDateComponents alloc] init];
+    if (interval == nil) {
+        interval = @1;
+    }
+    
+    if([frequency isEqualToString:@"SECONDLY"]){
+        intervalComponents.second = [interval integerValue];
+    }
+    else if([frequency isEqualToString:@"MINUTELY"]){
+        intervalComponents.minute = [interval integerValue];
+    }
+    else if([frequency isEqualToString:@"HOURLY"]){
+        intervalComponents.hour = [interval integerValue];
+    }
+    else if([frequency isEqualToString:@"DAILY"]){
+        intervalComponents.day = [interval integerValue];
+    }
+    else if([frequency isEqualToString:@"WEEKLY"]){
+        intervalComponents.weekOfYear = [interval integerValue];
+    }
+    else if([frequency isEqualToString:@"MONTHLY"]){
+        intervalComponents.month = [interval integerValue];
+    }
+    else if([frequency isEqualToString:@"YEARLY"]){
+        intervalComponents.year = [interval integerValue];
+    }
+    
+    return intervalComponents;
+}
+
+- (NSCalendar *)workingCalendar {
+    NSCalendar *workingCalendar = [NSCalendar currentCalendar];
+    [workingCalendar setTimeZone:timeZone];
+    if (wkst) {
+        [workingCalendar setFirstWeekday:[wkst unsignedIntegerValue]];
+    }
+    return workingCalendar;
 }
 
 
