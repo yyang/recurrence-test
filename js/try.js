@@ -2,7 +2,7 @@
 'use strict';
 
 var RRule = require('rrule').RRule;
-var moment = require('moment-timezone');
+var moment = require('./lib/moment-timezone-with-data.min.js');
 
 var timezone = 'America/Los_Angeles';
 var rfcString = "DTSTART=20150616T103000Z;FREQ=DAILY;BYHOUR=10;BYMINUTE=30;BYSECOND=0;UNTIL=20150712T153000Z";
