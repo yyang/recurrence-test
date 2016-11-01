@@ -1,4 +1,4 @@
-RFC2445 Test for Home One
+RFC2445 Test
 ============
 
 We found it's very difficult to deal with recurrence on multiple platforms, 
